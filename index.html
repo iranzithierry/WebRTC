@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <title>Document</title>
+</head>
+
+<body>
+
+    <button id="record-audio-btn">Record</button>
+    <button id="stop-recording-btn">Stop</button>
+    <script>
+        const socket = io("ws://localhost:3000");
+
+        const recordBtn = document.getElementById("record-audio-btn");
+        const stopRecrdingBtn = document.getElementById("stop-recording-btn");
+
+        if(stopRecrdingBtn) {
+            stopRecrdingBtn.disabled = true;
+        }
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        recordBtn.onclick = () => {
+            recordBtn.disabled = true;
+            stopRecrdingBtn.disabled = false;
+
+            navigator.mediaDevices
+                .getUserMedia({ audio: true })
+                .then((stream) => {
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            const base64data = reader.result;
+                            socket.emit("transcribe", base64data);
+                            console.log("********** Audio Sent **************");
+                        };
+                    };
+
+                    mediaRecorder.start();
+                    console.log("********** Audio Rec started **************");
+                })
+                .catch((err) => console.log("ERROR: >", err));
+        };
+
+        stopRecrdingBtn.onclick = () => {
+            recordBtn.disabled = false;
+
+            console.log("************ stopped ***********");
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                audioChunks = [];
+            }
+        };
+
+    </script>
+</body>
+
+</html>
