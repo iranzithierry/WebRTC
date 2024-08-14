@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <script src="./recognition.js"></script>
     <title>Document</title>
 </head>
 
@@ -12,11 +13,15 @@
 
     <button id="record-audio-btn">Record</button>
     <button id="stop-recording-btn">Stop</button>
+    <p id="output"></p>
     <script>
         const socket = io("ws://localhost:3000");
 
+        const output = document.getElementById("output");
         const recordBtn = document.getElementById("record-audio-btn");
         const stopRecrdingBtn = document.getElementById("stop-recording-btn");
+
+        const recognition = new SpeechRecognizer(output)
 
         if(stopRecrdingBtn) {
             stopRecrdingBtn.disabled = true;
@@ -34,6 +39,7 @@
                 .then((stream) => {
                     mediaRecorder = new MediaRecorder(stream);
 
+                    recognition.start()
                     mediaRecorder.ondataavailable = (event) => {
                         audioChunks.push(event.data);
                     };
@@ -57,6 +63,8 @@
 
         stopRecrdingBtn.onclick = () => {
             recordBtn.disabled = false;
+
+            recognition.stop()
 
             console.log("************ stopped ***********");
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
